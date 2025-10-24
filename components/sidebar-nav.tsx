@@ -2,19 +2,19 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, AlertTriangle } from "lucide-react"
+import { LayoutDashboardIcon, AlertTriangleIcon } from "@/components/icons"
 import { cn } from "@/lib/utils"
 
 const navItems = [
   {
     title: "Overview",
     href: "/",
-    icon: LayoutDashboard,
+    icon: LayoutDashboardIcon,
   },
   {
     title: "Events",
     href: "/events",
-    icon: AlertTriangle,
+    icon: AlertTriangleIcon,
   },
 ]
 

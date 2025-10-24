@@ -1,6 +1,5 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
 import { SidebarNav } from "@/components/sidebar-nav"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -8,84 +7,16 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CheckCircle, XCircle, RefreshCw } from "lucide-react"
-
-export const dynamic = "force-dynamic"
-
-interface Event {
-  id: string
-  asset_id: string
-  sensor_id: string
-  kind: string
-  start_ts: string
-  end_ts: string | null
-  magnitude_mm: number
-  severity: string
-  quality_gate: string
-}
-
-interface Measurement {
-  ts: string
-  sensor_id: string
-  x_mm: string
-  y_mm: string
-  z_mm: string
-  fix_type: string
-  quality: string
-}
+import { events, assets, aiActions, chainAnchors, measurements } from "@/lib/mock-data"
 
 export default function EventDetailPage() {
   const params = useParams()
   const eventId = params.id as string
 
-  const [event, setEvent] = useState<Event | null>(null)
-  const [asset, setAsset] = useState<any>(null)
-  const [aiAction, setAIAction] = useState<any>(null)
-  const [chainAnchor, setChainAnchor] = useState<any>(null)
-  const [measurements, setMeasurements] = useState<Measurement[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    async function loadData() {
-      try {
-        const baseUrl = window.location.origin
-        const [eventsRes, assetsRes, aiRes, chainRes, measurementsRes] = await Promise.all([
-          fetch(`${baseUrl}/mock/events.json`, { cache: "no-store" }),
-          fetch(`${baseUrl}/mock/assets_virtual.json`, { cache: "no-store" }),
-          fetch(`${baseUrl}/mock/ai_actions.json`, { cache: "no-store" }),
-          fetch(`${baseUrl}/mock/chain_anchors.json`, { cache: "no-store" }),
-          fetch(`${baseUrl}/mock/measurements.csv`, { cache: "no-store" }),
-        ])
-
-        const events = await eventsRes.json()
-        const assets = await assetsRes.json()
-        const aiActions = await aiRes.json()
-        const chainAnchors = await chainRes.json()
-
-        const csvText = await measurementsRes.text()
-        const lines = csvText.trim().split("\n")
-        const headers = lines[0].split(",")
-        const parsedMeasurements = lines.slice(1).map((line) => {
-          const values = line.split(",")
-          return headers.reduce((obj, header, index) => {
-            obj[header] = values[index]
-            return obj
-          }, {} as any)
-        })
-
-        const foundEvent = events.find((e: Event) => e.id === eventId)
-        setEvent(foundEvent)
-        setAsset(assets.find((a: any) => a.id === foundEvent?.asset_id))
-        setAIAction(aiActions.find((a: any) => a.event_id === eventId))
-        setChainAnchor(chainAnchors.find((a: any) => a.event_id === eventId))
-        setMeasurements(parsedMeasurements.filter((m: Measurement) => m.sensor_id === foundEvent?.sensor_id))
-      } catch (error) {
-        console.error("[v0] Failed to load event data:", error)
-      } finally {
-        setLoading(false)
-      }
-    }
-    loadData()
-  }, [eventId])
+  const event = events.find((e) => e.id === eventId)
+  const asset = assets.find((a) => a.id === event?.asset_id)
+  const aiAction = aiActions.find((a) => a.event_id === eventId)
+  const chainAnchor = chainAnchors.find((a) => a.event_id === eventId)
 
   const calculateDuration = (start: string, end: string | null) => {
     const startTime = new Date(start).getTime()
@@ -94,11 +25,13 @@ export default function EventDetailPage() {
   }
 
   const generateAIProposal = () => {
+    if (!event || !asset) return null
+
     return {
-      scope: `Structural assessment and repair of ${asset?.name} following ${event?.kind} detection with ${event?.magnitude_mm}mm displacement.`,
+      scope: aiAction?.proposal || `Assessment and resolution of ${event.kind} at ${asset.name}`,
       sla: `Response within 4 hours, on-site inspection within 24 hours, preliminary report within 48 hours.`,
-      procedure: `1. Deploy certified structural engineer\n2. Conduct visual and instrumental inspection\n3. Perform load testing if required\n4. Document findings with photographic evidence\n5. Provide immediate safety recommendations`,
-      deliverables: `- Detailed inspection report with CAD drawings\n- Structural integrity assessment\n- Repair recommendations with cost estimates\n- Safety certification upon completion`,
+      procedure: `1. Deploy certified engineer\n2. Conduct inspection\n3. Perform testing if required\n4. Document findings\n5. Provide safety recommendations`,
+      deliverables: `- Detailed inspection report\n- Integrity assessment\n- Repair recommendations\n- Safety certification`,
       dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString(),
     }
   }
@@ -113,17 +46,6 @@ export default function EventDetailPage() {
     return variants[severity] || "default"
   }
 
-  if (loading) {
-    return (
-      <div className="flex">
-        <SidebarNav />
-        <main className="flex flex-1 items-center justify-center">
-          <p className="text-muted-foreground">Loading...</p>
-        </main>
-      </div>
-    )
-  }
-
   if (!event) {
     return (
       <div className="flex">
@@ -136,6 +58,7 @@ export default function EventDetailPage() {
   }
 
   const proposal = generateAIProposal()
+  const relevantMeasurements = measurements.filter((m) => m.asset_id === event.asset_id).slice(0, 5)
 
   return (
     <div className="flex">
@@ -159,21 +82,21 @@ export default function EventDetailPage() {
             {/* Left: Chart */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-foreground">Time Series Data</CardTitle>
+                <CardTitle className="text-foreground">Measurements Data</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <div className="h-64 rounded-lg border border-border bg-muted/20 p-4">
-                    <p className="mb-2 text-sm font-medium text-foreground">ΔZ & ΔXY Measurements</p>
+                    <p className="mb-2 text-sm font-medium text-foreground">Recent Measurements</p>
                     <div className="space-y-2">
-                      {measurements.slice(0, 5).map((m, i) => (
+                      {relevantMeasurements.map((m, i) => (
                         <div key={i} className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">{new Date(m.ts).toLocaleTimeString()}</span>
+                          <span className="text-muted-foreground">{new Date(m.timestamp).toLocaleTimeString()}</span>
                           <span className="text-foreground">
-                            Z: {m.z_mm}mm | XY: {Math.sqrt(Number(m.x_mm) ** 2 + Number(m.y_mm) ** 2).toFixed(1)}mm
+                            {m.metric}: {m.value} {m.unit}
                           </span>
                           <Badge variant="secondary" className="text-xs">
-                            {m.fix_type}
+                            {m.asset_id}
                           </Badge>
                         </div>
                       ))}
@@ -181,8 +104,8 @@ export default function EventDetailPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <p className="text-muted-foreground">Magnitude</p>
-                      <p className="font-semibold text-foreground">{event.magnitude_mm} mm</p>
+                      <p className="text-muted-foreground">Event Type</p>
+                      <p className="font-semibold text-foreground">{event.kind}</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Duration</p>
@@ -191,12 +114,12 @@ export default function EventDetailPage() {
                       </p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground">Quality Gate</p>
-                      <p className="font-semibold text-foreground">{event.quality_gate}</p>
+                      <p className="text-muted-foreground">Severity</p>
+                      <p className="font-semibold text-foreground">{event.severity}</p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground">Sensor</p>
-                      <p className="font-semibold text-foreground">{event.sensor_id}</p>
+                      <p className="text-muted-foreground">Asset Type</p>
+                      <p className="font-semibold text-foreground">{asset?.type || "N/A"}</p>
                     </div>
                   </div>
                 </div>
@@ -234,6 +157,10 @@ export default function EventDetailPage() {
                           <Badge variant={getSeverityBadge(event.severity)}>{event.severity}</Badge>
                         </div>
                       </div>
+                      <div className="mt-4">
+                        <h4 className="mb-1 text-sm font-semibold text-foreground">Description</h4>
+                        <p className="text-sm text-muted-foreground">{event.description}</p>
+                      </div>
                     </div>
                   </TabsContent>
 
@@ -243,33 +170,37 @@ export default function EventDetailPage() {
                         <p className="text-sm text-muted-foreground">
                           Confidence: {aiAction?.confidence ? (aiAction.confidence * 100).toFixed(0) : "N/A"}%
                         </p>
-                        <p className="text-xs text-muted-foreground">Model: {aiAction?.model_ver || "N/A"}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Generated: {aiAction?.created_at ? new Date(aiAction.created_at).toLocaleString() : "N/A"}
+                        </p>
                       </div>
-                      <Badge>{aiAction?.status || "N/A"}</Badge>
+                      <Badge>{aiAction ? "Available" : "Pending"}</Badge>
                     </div>
 
-                    <div className="space-y-4 text-sm">
-                      <div>
-                        <h4 className="mb-1 font-semibold text-foreground">Scope</h4>
-                        <p className="text-muted-foreground">{proposal.scope}</p>
+                    {proposal && (
+                      <div className="space-y-4 text-sm">
+                        <div>
+                          <h4 className="mb-1 font-semibold text-foreground">Scope</h4>
+                          <p className="text-muted-foreground">{proposal.scope}</p>
+                        </div>
+                        <div>
+                          <h4 className="mb-1 font-semibold text-foreground">SLA</h4>
+                          <p className="text-muted-foreground">{proposal.sla}</p>
+                        </div>
+                        <div>
+                          <h4 className="mb-1 font-semibold text-foreground">On-site Procedure</h4>
+                          <p className="whitespace-pre-line text-muted-foreground">{proposal.procedure}</p>
+                        </div>
+                        <div>
+                          <h4 className="mb-1 font-semibold text-foreground">Deliverables</h4>
+                          <p className="whitespace-pre-line text-muted-foreground">{proposal.deliverables}</p>
+                        </div>
+                        <div>
+                          <h4 className="mb-1 font-semibold text-foreground">Due Date</h4>
+                          <p className="text-muted-foreground">{proposal.dueDate}</p>
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="mb-1 font-semibold text-foreground">SLA</h4>
-                        <p className="text-muted-foreground">{proposal.sla}</p>
-                      </div>
-                      <div>
-                        <h4 className="mb-1 font-semibold text-foreground">On-site Procedure</h4>
-                        <p className="whitespace-pre-line text-muted-foreground">{proposal.procedure}</p>
-                      </div>
-                      <div>
-                        <h4 className="mb-1 font-semibold text-foreground">Deliverables</h4>
-                        <p className="whitespace-pre-line text-muted-foreground">{proposal.deliverables}</p>
-                      </div>
-                      <div>
-                        <h4 className="mb-1 font-semibold text-foreground">Due Date</h4>
-                        <p className="text-muted-foreground">{proposal.dueDate}</p>
-                      </div>
-                    </div>
+                    )}
 
                     <div className="flex gap-2 pt-4">
                       <Button size="sm" className="flex-1">
@@ -291,20 +222,20 @@ export default function EventDetailPage() {
                       <>
                         <div className="space-y-2 text-sm">
                           <div>
-                            <p className="text-muted-foreground">Chain</p>
-                            <p className="font-mono text-foreground">{chainAnchor.chain}</p>
+                            <p className="text-muted-foreground">Block Number</p>
+                            <p className="font-mono text-foreground">{chainAnchor.block_number}</p>
                           </div>
                           <div>
                             <p className="text-muted-foreground">Transaction Hash</p>
                             <p className="break-all font-mono text-xs text-foreground">{chainAnchor.tx_hash}</p>
                           </div>
                           <div>
-                            <p className="text-muted-foreground">Digest</p>
-                            <p className="break-all font-mono text-xs text-foreground">{chainAnchor.digest}</p>
+                            <p className="text-muted-foreground">Timestamp</p>
+                            <p className="text-foreground">{new Date(chainAnchor.timestamp).toLocaleString()}</p>
                           </div>
                         </div>
                         <Button size="sm" variant="outline" className="w-full bg-transparent">
-                          Verify Hash
+                          Verify on Blockchain
                         </Button>
                       </>
                     ) : (

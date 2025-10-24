@@ -1,77 +1,28 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { SidebarNav } from "@/components/sidebar-nav"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Download } from "lucide-react"
-
-export const dynamic = "force-dynamic"
+import { events, assets, aiActions, chainAnchors } from "@/lib/mock-data"
 
 interface Event {
   id: string
   asset_id: string
-  sensor_id: string
   kind: string
   start_ts: string
   end_ts: string | null
-  magnitude_mm: number
   severity: string
-  quality_gate: string
-}
-
-interface Asset {
-  id: string
-  name: string
-}
-
-interface AIAction {
-  event_id: string
-  status: string
-}
-
-interface ChainAnchor {
-  event_id: string
-  tx_hash: string
+  description: string
 }
 
 export default function EventsPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [events, setEvents] = useState<Event[]>([])
-  const [assets, setAssets] = useState<Asset[]>([])
-  const [aiActions, setAIActions] = useState<AIAction[]>([])
-  const [chainAnchors, setChainAnchors] = useState<ChainAnchor[]>([])
-  const [loading, setLoading] = useState(true)
 
   const assetFilter = searchParams.get("asset")
-
-  useEffect(() => {
-    async function loadData() {
-      try {
-        const baseUrl = window.location.origin
-        const [eventsRes, assetsRes, aiRes, chainRes] = await Promise.all([
-          fetch(`${baseUrl}/mock/events.json`, { cache: "no-store" }),
-          fetch(`${baseUrl}/mock/assets_virtual.json`, { cache: "no-store" }),
-          fetch(`${baseUrl}/mock/ai_actions.json`, { cache: "no-store" }),
-          fetch(`${baseUrl}/mock/chain_anchors.json`, { cache: "no-store" }),
-        ])
-
-        setEvents(await eventsRes.json())
-        setAssets(await assetsRes.json())
-        setAIActions(await aiRes.json())
-        setChainAnchors(await chainRes.json())
-      } catch (error) {
-        console.error("[v0] Failed to load data:", error)
-      } finally {
-        setLoading(false)
-      }
-    }
-    loadData()
-  }, [])
-
   const filteredEvents = assetFilter ? events.filter((e) => e.asset_id === assetFilter) : events
 
   const calculateDuration = (start: string, end: string | null) => {
@@ -85,7 +36,8 @@ export default function EventsPage() {
   }
 
   const getAIStatus = (eventId: string) => {
-    return aiActions.find((a) => a.event_id === eventId)?.status || "-"
+    const action = aiActions.find((a) => a.event_id === eventId)
+    return action ? `${(action.confidence * 100).toFixed(0)}%` : "-"
   }
 
   const isAnchored = (eventId: string) => {
@@ -93,27 +45,16 @@ export default function EventsPage() {
   }
 
   const exportCSV = () => {
-    const headers = [
-      "Time",
-      "Asset",
-      "Kind",
-      "ΔZ(mm)",
-      "Duration(min)",
-      "Quality Gate",
-      "Severity",
-      "AI Status",
-      "On-chain",
-    ]
+    const headers = ["Time", "Asset", "Kind", "Duration(min)", "Severity", "AI Confidence", "On-chain", "Description"]
     const rows = filteredEvents.map((e) => [
       e.start_ts,
       getAssetName(e.asset_id),
       e.kind,
-      e.magnitude_mm,
       calculateDuration(e.start_ts, e.end_ts),
-      e.quality_gate,
       e.severity,
       getAIStatus(e.id),
       isAnchored(e.id) ? "Yes" : "No",
+      e.description,
     ])
 
     const csv = [headers, ...rows].map((row) => row.join(",")).join("\n")
@@ -135,17 +76,6 @@ export default function EventsPage() {
     return variants[severity] || "default"
   }
 
-  if (loading) {
-    return (
-      <div className="flex">
-        <SidebarNav />
-        <main className="flex flex-1 items-center justify-center">
-          <p className="text-muted-foreground">Loading...</p>
-        </main>
-      </div>
-    )
-  }
-
   return (
     <div className="flex">
       <SidebarNav />
@@ -164,7 +94,7 @@ export default function EventsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-foreground">All Events</CardTitle>
+              <CardTitle className="text-foreground">All Events ({filteredEvents.length})</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
@@ -174,12 +104,11 @@ export default function EventsPage() {
                       <th className="pb-3 font-medium">Time</th>
                       <th className="pb-3 font-medium">Asset</th>
                       <th className="pb-3 font-medium">Kind</th>
-                      <th className="pb-3 font-medium">ΔZ(mm)</th>
                       <th className="pb-3 font-medium">Duration(min)</th>
-                      <th className="pb-3 font-medium">Quality Gate</th>
                       <th className="pb-3 font-medium">Severity</th>
-                      <th className="pb-3 font-medium">AI Status</th>
+                      <th className="pb-3 font-medium">AI Confidence</th>
                       <th className="pb-3 font-medium">On-chain</th>
+                      <th className="pb-3 font-medium">Description</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -194,16 +123,15 @@ export default function EventsPage() {
                         <td className="py-3">
                           <Badge variant={event.kind === "fault" ? "destructive" : "default"}>{event.kind}</Badge>
                         </td>
-                        <td className="py-3 text-sm text-foreground">{event.magnitude_mm}</td>
                         <td className="py-3 text-sm text-foreground">
                           {calculateDuration(event.start_ts, event.end_ts)}
                         </td>
-                        <td className="py-3 text-sm text-foreground">{event.quality_gate}</td>
                         <td className="py-3">
                           <Badge variant={getSeverityBadge(event.severity)}>{event.severity}</Badge>
                         </td>
                         <td className="py-3 text-sm text-foreground">{getAIStatus(event.id)}</td>
                         <td className="py-3 text-sm text-foreground">{isAnchored(event.id) ? "✓" : "-"}</td>
+                        <td className="py-3 text-sm text-muted-foreground">{event.description}</td>
                       </tr>
                     ))}
                   </tbody>
