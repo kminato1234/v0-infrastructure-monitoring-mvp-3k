@@ -1,0 +1,30 @@
+[
+  {
+    "event_id": "evt-001",
+    "type": "RFP_DRAFT",
+    "status": "proposed",
+    "confidence": 0.87,
+    "model_ver": "gpt-4o-2024-08-06"
+  },
+  {
+    "event_id": "evt-002",
+    "type": "RFP_DRAFT",
+    "status": "executed",
+    "confidence": 0.92,
+    "model_ver": "gpt-4o-2024-08-06"
+  },
+  {
+    "event_id": "evt-003",
+    "type": "RFP_DRAFT",
+    "status": "pending",
+    "confidence": 0.78,
+    "model_ver": "gpt-4o-2024-08-06"
+  },
+  {
+    "event_id": "evt-005",
+    "type": "RFP_DRAFT",
+    "status": "proposed",
+    "confidence": 0.85,
+    "model_ver": "gpt-4o-2024-08-06"
+  }
+]

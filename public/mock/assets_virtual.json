@@ -1,0 +1,9 @@
+[
+  { "id": "asset-001", "name": "Bridge A-12", "type": "bridge", "x": 25, "y": 30 },
+  { "id": "asset-002", "name": "Tower B-5", "type": "tower", "x": 60, "y": 45 },
+  { "id": "asset-003", "name": "Building C-8", "type": "building", "x": 40, "y": 70 },
+  { "id": "asset-004", "name": "Road D-3", "type": "road", "x": 75, "y": 20 },
+  { "id": "asset-005", "name": "Tunnel E-9", "type": "tunnel", "x": 15, "y": 85 },
+  { "id": "asset-006", "name": "Dam F-2", "type": "dam", "x": 85, "y": 60 },
+  { "id": "asset-007", "name": "Pipeline G-7", "type": "pipeline", "x": 50, "y": 50 }
+]
