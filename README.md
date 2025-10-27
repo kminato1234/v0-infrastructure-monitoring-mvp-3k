@@ -1,30 +1,14 @@
-# Infrastructure monitoring MVP
+# Infrastructure Monitoring MVP
 
-*Automatically synced with your [v0.app](https://v0.app) deployments*
+A minimal, working MVP that shows an infrastructure monitoring dashboard and event drill-downs.
 
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/awill1209away-6846s-projects/v0-infrastructure-monitoring-mvp-ig)
-[![Built with v0](https://img.shields.io/badge/Built%20with-v0.app-black?style=for-the-badge)](https://v0.app/chat/projects/lHkUtTAdQms)
+## Live
+- https://v0-infrastructure-monitoring-mvp-ig.vercel.app/
 
-## Overview
+## Implemented
 
-This repository will stay in sync with your deployed chats on [v0.app](https://v0.app).
-Any changes you make to your deployed app will be automatically pushed to this repository from [v0.app](https://v0.app).
-
-## Deployment
-
-Your project is live at:
-
-**[https://vercel.com/awill1209away-6846s-projects/v0-infrastructure-monitoring-mvp-ig](https://vercel.com/awill1209away-6846s-projects/v0-infrastructure-monitoring-mvp-ig)**
-
-## Build your app
-
-Continue building your app on:
-
-**[https://v0.app/chat/projects/lHkUtTAdQms](https://v0.app/chat/projects/lHkUtTAdQms)**
-
-## How It Works
-
-1. Create and modify your project using [v0.app](https://v0.app)
-2. Deploy your chats from the v0 interface
-3. Changes are automatically pushed to this repository
-4. Vercel deploys the latest version from this repository
+- **Overview dashboard with KPIs (24h):** counters for **Anomalies**, **Faults**, and **Anchored On-chain**.  
+- **Virtual City Map section:** region/asset names and a note to “click markers to filter events.”  
+- **Recent Events list:** clickable cards from Overview jump to each **event detail** page.  
+- **Event detail pages:** show asset name, event type (anomaly/fault), severity, time range/duration, asset type, description, and **Recent Measurements** (timestamped metrics).  
+- **Basic navigation & build info:** header links (**Overview / Events**) and a **build timestamp**.
